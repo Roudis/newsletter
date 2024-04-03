@@ -1,1 +1,3 @@
-Tag1;Tag2;Name;Description;Location;Expiration Date;Link
+﻿Tag1;Tag2;Name;Description;Location;Expiration Date;Link;Image
+free1;Free;Voucher για microsoft exam;Καλσηπέρα Beta Testers! Με αυτό το λινκ μπορείτε να γραφτείτε σε Challenge της Microsoft που σου δίνει voucher για , AI-900, AI-102, DP-100, DP-600 στο compeltion.;Online;19/4/2024;https://www.microsoft.com/en-us/cloudskillschallenge/ai/registration/2024?ocid=aisc23_CSC_skillsforaiblog_cnl;test123.png
+free2;Free2; Test για διπλό row;Καλσηπέρα Beta Testers! Με αυτό το λινκ μπορείτε να γραφτείτε σε Challenge της Microsoft που σου δίνει voucher για , AI-900, AI-102, DP-100, DP-600 στο compeltion.;Online;19/4/2024;https://www.microsoft.com/en-us/cloudskillschallenge/ai/registration/2024?ocid=aisc23_CSC_skillsforaiblog_cnl;
