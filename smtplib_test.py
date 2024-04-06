@@ -10,7 +10,7 @@ from datetime import datetime
 # Variables setup
 emails_file = "emails.csv"
 csv_file = "newsletter.csv"
-subject = "Email Subject"
+subject = "CMMS-Boas Newsletter"
 sender = "cmmsuse@gmail.com"
 password = "ibhvkjwnnnclsnsx"
 # base_path = "/Users/croudis/Documents/Projects/Mail-offer/"
@@ -93,7 +93,7 @@ def make_body(csv_file):
     </head>
     <body>
         <div class="container">
-            <img class="banner" src="banner.jpg" alt="Banner">
+            <img class="banner" src="cid:banner" alt="Banner">
 
     """
 
@@ -127,6 +127,12 @@ def make_body(csv_file):
     return body, news_df
 
 def attach_images(message,news_df):
+    fp = open('banner.jpg', 'rb')
+    image = MIMEImage(fp.read())
+    fp.close()
+    image.add_header('Content-ID', '<banner>')
+    message.attach(image)
+   
     for index, row in news_df.iterrows():
     # We assume that the image file is in the same directory that you run your Python script from
         fp = open(row['Image'], 'rb')
