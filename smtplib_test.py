@@ -13,14 +13,14 @@ csv_file = "newsletter.csv"
 subject = "CMMS-Boas Newsletter"
 sender = "cmmsuse@gmail.com"
 password = "ibhvkjwnnnclsnsx"
-# base_path = "/Users/croudis/Documents/Projects/Mail-offer/"
-base_path = "/home/kostas/Documents/Profile/random projects/newsletter/"
+base_path = "./"
 archive_path = os.path.join(base_path, "Archive")
 source_file = os.path.join(base_path, csv_file)
+utils = os.path.join(base_path, "Utils")
 
 def make_sub_list():
     subscribers = []
-    with open(emails_file, newline='') as csvfile:
+    with open(os.path.join(utils, emails_file), newline='') as csvfile:
         reader = csv.reader(csvfile)
         next(reader)
         test = reader
@@ -117,8 +117,10 @@ def make_body(csv_file):
                         <p><a href={row['Link'] }>Read more</a></p>
                     </div>
                 </div>
-            
-    """
+                """
+        
+        news_df.loc[index] = row
+
     body += """
         </div>
     </body>
@@ -127,7 +129,7 @@ def make_body(csv_file):
     return body, news_df
 
 def attach_images(message,news_df):
-    fp = open('banner.jpg', 'rb')
+    fp = open(os.path.join(utils, 'banner.jpg'), 'rb')
     image = MIMEImage(fp.read())
     fp.close()
     image.add_header('Content-ID', '<banner>')
@@ -135,7 +137,10 @@ def attach_images(message,news_df):
    
     for index, row in news_df.iterrows():
     # We assume that the image file is in the same directory that you run your Python script from
-        fp = open(row['Image'], 'rb')
+        try:
+            fp = open(row['Image'], 'rb')
+        except:
+            fp = open(os.path.join(utils, "image.png"), 'rb')
         image = MIMEImage(fp.read())
         fp.close()
 
@@ -178,11 +183,13 @@ send_email(subject, message, sender, subscribers, password)
 
 # Get today's date and time in YYYY-MM-DD_HH-MM format
 now = datetime.now()
-formatted_datetime = now.strftime("%Y-%m-%d_%H-%M")
+formatted_datetime = now.strftime("%Y-%m-%d")
+rename_date = now.strftime("%Y%m%d%H%M%S")
 
 # Define folder name and path
 folder_name = f"Todays_Take_{formatted_datetime}"
 folder_path = os.path.join(archive_path, folder_name)
+file_path = os.path.join(folder_path, 'newsletter' + rename_date + '.csv')
 
 
 # Check if the folder already exists
@@ -191,23 +198,30 @@ if not os.path.exists(folder_path):
   os.makedirs(folder_path)
   print(f"Created folder: {folder_path}")
 
-# Check if the source file exists
-if os.path.isfile(source_file):
-  # Move the file to the created folder
-  destination_file = os.path.join(folder_path, "newsletter.csv")
-  os.replace(source_file, destination_file)
-  print(f"Moved newsletter.csv to: {destination_file}")
-else:
-  print("newsletter.csv not found in the source location.")
+
+# Rename and move images in archive
+for index,row in news_df.iterrows():
+    image = row["Image"]
+    try:
+        os.rename(os.path.join(base_path, image), os.path.join(folder_path, image.split(".")[0] + rename_date + "." + image.split(".")[1]))
+    except FileNotFoundError:
+        print("Error: File not found or path is incorrect.")
+    except Exception as e:
+        print(f"Error occurred: {e}")
+
+
+# Rename images for the current file 
+news_df['Image'] = news_df['Image'].apply(lambda x: x.split(".")[0] + rename_date + "." + x.split(".")[1])
+news_df = news_df.drop('cid', axis=1)
+
+# Write the new file to the archive folder 
+news_df.to_csv(file_path, index=False, sep=';')
+
+
 
 # Define the header row with your desired tags
-header = ["Tag1", "Tag2", "Name", "Description", "Location", "Expiration Date", "Link", "Image"]
-
-# Open the CSV file in write mode
-with open("newsletter.csv", "w", newline="") as csvfile:
-  writer = csv.writer(csvfile, delimiter=";")
-
-  # Write the header row
-  writer.writerow(header)
+header = news_df.columns
+next_newsletter = pd.DataFrame(columns=header)
+next_newsletter.to_csv(os.path.join(base_path, csv_file),sep=";",index=False)
 
 print("newsletter.csv file created with the header row.")
