@@ -5,15 +5,16 @@ from email.mime.multipart import MIMEMultipart
 import pandas as pd
 import csv
 import os
+import sys
 from datetime import datetime, timedelta
 
 # Variables setup
 emails_file = "emails.csv"
 csv_file = "newsletter.csv"
-subject = "CMMS-Boas Newsletter"
+subject = "Week's recap CMMS-Boas Newsletter"
 sender = "cmmsuse@gmail.com"
 password = "ibhvkjwnnnclsnsx"
-base_path = "./"
+base_path = "../"
 archive_path = os.path.join(base_path, "Archive")
 source_file = os.path.join(base_path, csv_file)
 utils = os.path.join(base_path, "Utils")
@@ -160,6 +161,22 @@ def send_email(subject, message, sender, subscribers, password):
        smtp_server.sendmail(sender, subscribers, msg.as_string())
     print("Message sent!")
 
+
+
+# List all directories in the archive and if the last weeks file exists
+now = datetime.now()
+last_week = now - timedelta(weeks=1)
+archive_target_file = last_week.strftime("%Y-%U_")
+directories = [name for name in os.listdir(archive_path) if os.path.isdir(os.path.join(archive_path, name))]
+folder_name = None
+for name in directories:
+    if name == "Recap_Done.txt":
+        print("Last weeks recap already done. Exiting program.")
+        sys.exit()
+    if name.startswith(archive_target_file):
+        folder_name = name
+        break
+
 # Initiate message
 message_alt = MIMEMultipart("alternative")
 message = MIMEMultipart('related')
@@ -167,7 +184,26 @@ message.attach(message_alt)
 
 # Make list of emails to send to
 subscribers = make_sub_list()
-news_df = pd.read_csv(csv_file, delimiter=";")
+
+
+
+# End execution if folder is not present 
+if not folder_name:
+    print("Last weeks file does not exist. Exiting program.")
+    sys.exit()
+
+# Initialize an empty list to store DataFrames
+dataframes = []
+weeks_folder_path = os.path.join(archive_path, folder_name)
+# Make a merged pd of all the newsletters
+for filename in os.listdir(weeks_folder_path):
+    if filename.endswith(".csv"):
+        file_path = os.path.join(weeks_folder_path, filename)
+        # Read the CSV file into a DataFrame and append it to the list
+        df = pd.read_csv(file_path, delimiter=";")
+        dataframes.append(df)
+
+news_df=pd.concat(dataframes, ignore_index=True)
 
 # Make the body of the email
 body, news_df = make_body(news_df)
@@ -177,50 +213,10 @@ message_alt.attach(body)
 # Incert images in the body
 message = attach_images(message,news_df)
 
-send_email(subject, message, sender, subscribers, password)
+# send_email(subject, message, sender, subscribers, password)
 
-# Get today's date and time in YYYY-MM-DD_HH-MM format
-now = datetime.now()
-start_of_week = now - timedelta(days=now.weekday() + 1)
-formatted_datetime = start_of_week.strftime("%Y-%U_%b-%d")
-rename_date = now.strftime("%Y%m%d%H%M%S")
-
-# Define folder name and path
-folder_name = f"{formatted_datetime}"
-folder_path = os.path.join(archive_path, folder_name)
-file_path = os.path.join(folder_path, 'newsletter' + rename_date + '.csv')
-
-
-# Check if the folder already exists
-if not os.path.exists(folder_path):
-  # Create the folder
-  os.makedirs(folder_path)
-  print(f"Created folder: {folder_path}")
-
-
-# Rename and move images in archive
-for index,row in news_df.iterrows():
-    image = row["Image"]
-    try:
-        os.rename(os.path.join(base_path, image), os.path.join(folder_path, image.split(".")[0] + rename_date + "." + image.split(".")[1]))
-    except FileNotFoundError:
-        print("Error: File not found or path is incorrect.")
-    except Exception as e:
-        print(f"Error occurred: {e}")
-
-
-# Rename images for the current file 
-news_df['Image'] = news_df['Image'].apply(lambda x: x.split(".")[0] + rename_date + "." + x.split(".")[1])
-news_df = news_df.drop('cid', axis=1)
-
-# Write the new file to the archive folder 
-news_df.to_csv(file_path, index=False, sep=';')
-
-
-
-# Define the header row with your desired tags
-header = news_df.columns
-next_newsletter = pd.DataFrame(columns=header)
-next_newsletter.to_csv(os.path.join(base_path, csv_file),sep=";",index=False)
-
-print("newsletter.csv file created with the header row.")
+completion_file = "Recap_Done.txt"
+completion_file_path = os.path.join(weeks_folder_path, completion_file)
+with open(completion_file_path, "w") as file:
+    recap_date = now.strftime("%d/%m %H:%M")
+    file.write(f"Recap was sent on: {recap_date}")
